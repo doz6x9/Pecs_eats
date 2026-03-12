@@ -1,62 +1,43 @@
-import Image from 'next/image';
-import Link from 'next/link';
+'use client';
 
-type Post = {
-  id: string;
-  created_at: string;
-  image_url: string;
-  description: string;
-  has_recipe: boolean;
-  profiles: {
-    id: string;
-    email: string;
-  } | null;
-};
+import { useState } from 'react';
 
-type PostCardProps = {
-  post: Post;
-};
-
-export default function PostCard({ post }: PostCardProps) {
-  const authorEmail = post.profiles?.email ?? 'Unknown User';
-  const authorId = post.profiles?.id;
+export default function PostCard({ post }: { post: any }) {
+  const [isRequested, setIsRequested] = useState(false);
 
   return (
-    <div className="relative group rounded-[32px] overflow-hidden aspect-[3/4] shadow-2xl">
-      {/* The Main Image */}
-      <Image
-        src={post.image_url}
-        alt={post.description}
-        fill
-        className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-110"
-      />
+    <div className="masonry-item group relative cursor-pointer">
+      <div className="relative rounded-2xl overflow-hidden">
+        <img
+          src={post.image_url}
+          alt={post.description}
+          className="w-full h-auto object-cover transition-transform duration-300 group-hover:scale-105 group-hover:brightness-90"
+        />
 
-      {/* Gradient Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80" />
-
-      {/* Content Overlays */}
-      <div className="absolute inset-0 p-6 flex flex-col justify-between">
-        <div className="flex justify-between items-start">
-          <Link href={`/profile/${authorId}`} className="glass px-3 py-1.5 rounded-full flex items-center gap-2">
-            <div className="w-5 h-5 bg-orange-500 rounded-full" />
-            <span className="text-xs font-medium">{authorEmail}</span>
-          </Link>
-          {post.has_recipe && (
-            <div className="bg-orange-600 text-[10px] font-bold px-3 py-1 rounded-full uppercase italic">
-              Live Recipe
-            </div>
-          )}
-        </div>
-
-        <div>
-          <h3 className="text-2xl font-black leading-tight mb-2 uppercase italic tracking-tighter">
-            {post.description.split(' ').slice(0, 3).join(' ')}
-          </h3>
-          <div className="flex items-center gap-4 text-sm font-medium">
-             <span className="flex items-center gap-1"><span className="text-orange-500">🔥</span> 86.5k</span>
-             <span className="flex items-center gap-1"><span className="text-blue-400">💬</span> 1.2k</span>
+        {/* Hover Overlay */}
+        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity p-4 flex flex-col justify-between">
+          <div className="flex justify-end">
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                setIsRequested(true);
+              }}
+              className={`px-4 py-2 rounded-full font-bold text-sm shadow-md transition-all ${
+                isRequested
+                ? 'bg-gray-200 text-gray-500 cursor-default'
+                : 'bg-red-600 text-white hover:bg-red-700'
+              }`}
+            >
+              {isRequested ? '✓ Requested' : 'Request Recipe'}
+            </button>
           </div>
         </div>
+      </div>
+
+      {/* Post Info */}
+      <div className="mt-2 px-1">
+        <h3 className="text-sm font-bold leading-tight line-clamp-2">{post.description}</h3>
+        <p className="text-xs text-gray-500 mt-1">PTE Student</p>
       </div>
     </div>
   );

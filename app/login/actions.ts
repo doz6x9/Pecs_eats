@@ -3,39 +3,54 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
+import { headers } from 'next/headers'
 
 export async function login(formData: FormData) {
   const supabase = await createClient()
 
-  const data = {
-    email: formData.get('email') as string,
-    password: formData.get('password') as string,
-  }
+  const email = formData.get('email') as string
+  const password = formData.get('password') as string
 
-  const { error } = await supabase.auth.signInWithPassword(data)
+  const { error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  })
 
   if (error) {
-    redirect('/login?message=Could not authenticate user')
+    // encodeURIComponent handles special characters in error messages
+    return redirect(`/login?message=${encodeURIComponent(error.message)}`)
   }
 
   revalidatePath('/', 'layout')
-  redirect('/')
+  return redirect('/')
 }
 
 export async function signup(formData: FormData) {
   const supabase = await createClient()
+  const origin = (await headers()).get('origin')
 
-  const data = {
-    email: formData.get('email') as string,
-    password: formData.get('password') as string,
-  }
+  const email = formData.get('email') as string
+  const password = formData.get('password') as string
 
-  const { error } = await supabase.auth.signUp(data)
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      // This helps Supabase redirect the user back after email confirmation
+      emailRedirectTo: `${origin}/auth/callback`,
+    },
+  })
 
   if (error) {
-    redirect('/login?message=Could not create user')
+    return redirect(`/login?message=${encodeURIComponent(error.message)}`)
+  }
+
+  // If Supabase is set to "Confirm Email", the user isn't logged in yet.
+  // We check if a session exists. If not, they must check their email.
+  if (!data.session) {
+    return redirect('/login?message=Check your email to confirm your account')
   }
 
   revalidatePath('/', 'layout')
-  redirect('/')
+  return redirect('/')
 }
