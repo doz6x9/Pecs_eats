@@ -2,85 +2,98 @@
 
 import { useState } from 'react';
 import { requestRecipe } from '@/app/actions/recipeActions';
+import { deletePost } from '@/app/actions/postActions';
+import Link from 'next/link';
 
 interface Post {
   id: string;
+  user_id: string;
   image_url: string;
   description: string;
   has_recipe: boolean;
+  created_at: string;
   profiles: {
     id: string;
     email: string;
   } | null;
   recipe_requests: { count: number }[];
   user_has_requested: boolean;
+  commentCount: number;
 }
 
-export default function PostCard({ post }: { post: Post }) {
+interface PostCardProps {
+  post: Post;
+  currentUserId: string | null;
+  showDeleteButton?: boolean;
+}
+
+export default function PostCard({ post, currentUserId, showDeleteButton = false }: PostCardProps) {
   const [isRequested, setIsRequested] = useState(post.user_has_requested);
   const [requestCount, setRequestCount] = useState(post.recipe_requests[0]?.count ?? 0);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const authorDisplay = post.profiles?.email.split('@')[0] || 'Pécs Student';
 
   const handleRequest = async (e: React.MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation();
 
-    // Optimistically update the UI
-    if (isRequested) {
-      setIsRequested(false);
-      setRequestCount(prev => prev - 1);
-    } else {
-      setIsRequested(true);
-      setRequestCount(prev => prev + 1);
+    if (!currentUserId) {
+      window.location.href = '/login';
+      return;
     }
 
-    const result = await requestRecipe(post.id);
+    const alreadyRequested = isRequested;
+    setIsRequested(!alreadyRequested);
+    setRequestCount(prev => alreadyRequested ? prev - 1 : prev + 1);
+    setError(null);
 
+    const result = await requestRecipe(post.id);
     if (result.error) {
       setError(result.error);
       // Revert UI on error
-      setIsRequested(prev => !prev);
-      setRequestCount(prev => isRequested ? prev + 1 : prev - 1);
-    } else {
-      setError(null);
+      setIsRequested(alreadyRequested);
+      setRequestCount(prev => alreadyRequested ? prev + 1 : prev - 1);
     }
   };
 
-  return (
-    <div className="break-inside-avoid mb-4 group relative cursor-pointer">
-      <div className="relative rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300">
-        <img
-          src={post.image_url}
-          alt={post.description}
-          className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105 group-hover:brightness-90"
-        />
-      </div>
+  const handleDelete = async (e: React.MouseEvent) => {
+    // ... (delete logic)
+  };
 
-      <div className="mt-2 px-1">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-bold text-gray-900 leading-tight line-clamp-2 flex-1">
-            {post.description}
-          </h3>
-          <button
-            onClick={handleRequest}
-            className="flex items-center gap-1.5 text-gray-600 hover:text-red-600 transition-colors p-1 rounded-md"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              className={`w-5 h-5 transition-all ${isRequested ? 'fill-red-600' : 'fill-current'}`}
-            >
-              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-            </svg>
-            <span className="text-sm font-semibold">{requestCount}</span>
-          </button>
+  const canDelete = showDeleteButton && currentUserId === post.user_id;
+
+  return (
+    <div className={`break-inside-avoid mb-4 group relative ${isDeleting ? 'opacity-50 pointer-events-none' : ''}`}>
+      <Link href={`/post/${post.id}`} className="cursor-pointer">
+        <div className="relative rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300">
+          <img src={post.image_url} alt={post.description} className="w-full h-auto object-cover" />
+          {canDelete && (
+            <div className="absolute top-2 right-2">
+              {/* ... (delete button) */}
+            </div>
+          )}
         </div>
-        <div className="flex items-center gap-2 mt-1">
-          <div className="w-5 h-5 bg-orange-100 rounded-full flex items-center justify-center text-[10px] font-bold text-orange-700">
-            {authorDisplay.charAt(0).toUpperCase()}
+      </Link>
+      <div className="mt-2 px-1 space-y-3">
+        <h3 className="text-sm font-bold text-slate-900 leading-tight line-clamp-2">{post.description}</h3>
+
+        <div className="flex items-center justify-between gap-2">
+          <button onClick={handleRequest} className={`flex-grow px-4 py-2 rounded-lg font-bold text-sm shadow-sm transition-all ${isRequested ? 'bg-slate-200 text-slate-600' : 'bg-red-600 text-white hover:bg-red-700'}`}>
+            {isRequested ? '✓ Requested' : 'Request Recipe'}
+          </button>
+          <div className="text-sm font-bold text-slate-600 pr-2">{requestCount}</div>
+        </div>
+
+        <div className="flex items-center justify-between text-xs text-slate-500">
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 bg-orange-100 rounded-full flex items-center justify-center text-[10px] font-bold text-orange-700">{authorDisplay.charAt(0).toUpperCase()}</div>
+            <p className="font-medium">{authorDisplay}</p>
           </div>
-          <p className="text-xs text-gray-500 font-medium">{authorDisplay}</p>
+          <Link href={`/post/${post.id}#comments`} className="hover:underline">
+            {post.commentCount} comments
+          </Link>
         </div>
         {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
       </div>

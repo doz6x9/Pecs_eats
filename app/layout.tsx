@@ -1,12 +1,28 @@
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+import './globals.css';
+import Header from './components/Header'; // Import the new Header
+
+const inter = Inter({ subsets: ['latin'] });
+
+export const metadata: Metadata = {
+  title: 'Pécs Eats - Share Your Meals',
+  description: 'A food sharing social network for the students of Pécs.',
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en">
-      <body className="bg-black antialiased">
-        {/* We remove the outer padding so the app feels full-screen */}
-        <main className="min-h-screen">
+      <body className={`${inter.className} bg-slate-50 text-slate-800`}>
+        <Header />
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {children}
         </main>
       </body>
     </html>
-  )
+  );
 }
