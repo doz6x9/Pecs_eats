@@ -2,6 +2,7 @@
 
 import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { isValidUuid } from '@/lib/validation';
 
 async function checkAdmin() {
   const supabase = await createClient();
@@ -19,6 +20,10 @@ async function checkAdmin() {
 }
 
 export async function adminDeletePost(postId: string) {
+  if (!postId || !isValidUuid(postId)) {
+    return { error: 'Invalid post.' };
+  }
+
   const isAdmin = await checkAdmin();
   if (!isAdmin) {
     return { error: 'Unauthorized' };
@@ -42,13 +47,20 @@ export async function adminDeletePost(postId: string) {
 
   const { error } = await supabase.from('posts').delete().eq('id', postId);
 
-  if (error) return { error: error.message };
+  if (error) {
+    console.error('Admin delete post error:', error);
+    return { error: 'Failed to delete post.' };
+  }
 
   revalidatePath('/admin');
   return { success: true };
 }
 
 export async function adminDeleteComment(commentId: string) {
+  if (!commentId || !isValidUuid(commentId)) {
+    return { error: 'Invalid comment.' };
+  }
+
   const isAdmin = await checkAdmin();
   if (!isAdmin) {
     return { error: 'Unauthorized' };
@@ -57,7 +69,10 @@ export async function adminDeleteComment(commentId: string) {
   const supabase = await createClient();
   const { error } = await supabase.from('comments').delete().eq('id', commentId);
 
-  if (error) return { error: error.message };
+  if (error) {
+    console.error('Admin delete comment error:', error);
+    return { error: 'Failed to delete comment.' };
+  }
 
   revalidatePath('/admin');
   return { success: true };

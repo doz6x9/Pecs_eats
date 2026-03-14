@@ -5,6 +5,15 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import { headers } from 'next/headers'
 
+function getSafeAuthErrorMessage(raw: string): string {
+  const lower = (raw || '').toLowerCase()
+  if (lower.includes('invalid login') || lower.includes('invalid credentials')) return 'Invalid email or password.'
+  if (lower.includes('email not confirmed')) return 'Please confirm your email before signing in.'
+  if (lower.includes('user already registered')) return 'An account with this email already exists.'
+  if (lower.includes('password')) return 'Invalid email or password.'
+  return 'Something went wrong. Please try again.'
+}
+
 export async function login(formData: FormData) {
   const supabase = await createClient()
 
@@ -17,8 +26,8 @@ export async function login(formData: FormData) {
   })
 
   if (error) {
-    // encodeURIComponent handles special characters in error messages
-    return redirect(`/login?message=${encodeURIComponent(error.message)}`)
+    const safeMessage = getSafeAuthErrorMessage(error.message)
+    return redirect(`/login?message=${encodeURIComponent(safeMessage)}`)
   }
 
   revalidatePath('/', 'layout')
@@ -42,7 +51,8 @@ export async function signup(formData: FormData) {
   })
 
   if (error) {
-    return redirect(`/login?message=${encodeURIComponent(error.message)}`)
+    const safeMessage = getSafeAuthErrorMessage(error.message)
+    return redirect(`/login?message=${encodeURIComponent(safeMessage)}`)
   }
 
   // If Supabase is set to "Confirm Email", the user isn't logged in yet.

@@ -2,8 +2,13 @@
 
 import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { isValidUuid, LIMITS } from '@/lib/validation';
 
 export async function deletePost(postId: string) {
+  if (!postId || !isValidUuid(postId)) {
+    return { error: 'Invalid post.' };
+  }
+
   const supabase = await createClient();
 
   const {
@@ -73,14 +78,22 @@ export async function addComment(postId: string, content: string) {
     return { error: 'Authentication required.' };
   }
 
-  if (!content.trim()) {
+  const trimmed = content.trim();
+  if (!trimmed) {
     return { error: 'Comment cannot be empty.' };
+  }
+  if (trimmed.length > LIMITS.COMMENT_CONTENT) {
+    return { error: `Comment must be ${LIMITS.COMMENT_CONTENT} characters or less.` };
+  }
+
+  if (!postId || !isValidUuid(postId)) {
+    return { error: 'Invalid post.' };
   }
 
   const { error } = await supabase.from('comments').insert({
     post_id: postId,
     user_id: user.id,
-    content: content.trim(),
+    content: trimmed.slice(0, LIMITS.COMMENT_CONTENT),
   });
 
   if (error) {
@@ -102,8 +115,16 @@ export async function updateRecipe(postId: string, recipeText: string) {
     return { error: 'Authentication required.' };
   }
 
-  if (!recipeText.trim()) {
+  const trimmed = recipeText.trim();
+  if (!trimmed) {
     return { error: 'Recipe text cannot be empty.' };
+  }
+  if (trimmed.length > LIMITS.RECIPE_TEXT) {
+    return { error: `Recipe must be ${LIMITS.RECIPE_TEXT.toLocaleString()} characters or less.` };
+  }
+
+  if (!postId || !isValidUuid(postId)) {
+    return { error: 'Invalid post.' };
   }
 
   // Verify ownership
@@ -124,16 +145,23 @@ export async function updateRecipe(postId: string, recipeText: string) {
   const { error: updateError } = await supabase
     .from('posts')
     .update({
-      recipe_text: recipeText.trim(),
+      recipe_text: trimmed.slice(0, LIMITS.RECIPE_TEXT),
       has_recipe: true,
+      updated_at: new Date().toISOString(),
     })
     .eq('id', postId);
 
   if (updateError) {
     console.error('Error updating recipe:', updateError);
-    return { error: 'Failed to update recipe.' };
+    return {
+      error: updateError.code === '42501'
+        ? 'You don’t have permission to update this post. In Supabase, add an RLS policy so post owners can update their posts.'
+        : 'Failed to save recipe. Please try again.',
+    };
   }
 
+  // Revalidate so owner and requesters see the updated description page with recipe
   revalidatePath(`/post/${postId}`);
+  revalidatePath('/');
   return { success: true };
 }

@@ -3,6 +3,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { sanitizeFileName, isAllowedImageType, MAX_IMAGE_SIZE_BYTES, LIMITS } from '@/lib/validation'
 
 export async function uploadMeal(formData: FormData) {
   const supabase = await createClient()
@@ -39,21 +40,37 @@ export async function uploadMeal(formData: FormData) {
 
   // 2. Get form data
   const image = formData.get('image') as File
-  const description = formData.get('description') as string
-  const category = formData.get('category') as string // Get the category
+  let description = (formData.get('description') as string) ?? ''
+  const category = (formData.get('category') as string) ?? ''
   const has_recipe = formData.get('has_recipe') === 'on'
-  const recipe_text = formData.get('recipe_text') as string | null
+  let recipe_text = (formData.get('recipe_text') as string) ?? null
 
   if (!image || image.size === 0) {
     return redirect('/upload?message=Please select an image to upload.')
+  }
+
+  if (image.size > MAX_IMAGE_SIZE_BYTES) {
+    return redirect('/upload?message=Image must be 10 MB or smaller.')
+  }
+
+  if (!isAllowedImageType(image.type)) {
+    return redirect('/upload?message=Please upload a JPEG, PNG, GIF, or WebP image.')
   }
 
   if (!category) {
     return redirect('/upload?message=Please select a category.')
   }
 
-  // 3. Upload image to storage
-  const imagePath = `${user.id}/${Date.now()}_${image.name}`
+  description = description.trim().slice(0, LIMITS.POST_DESCRIPTION)
+  if (has_recipe && recipe_text) {
+    recipe_text = recipe_text.trim().slice(0, LIMITS.RECIPE_TEXT)
+  } else {
+    recipe_text = null
+  }
+
+  // 3. Upload image to storage (sanitized filename to prevent path traversal)
+  const safeName = sanitizeFileName(image.name || 'image')
+  const imagePath = `${user.id}/${Date.now()}_${safeName}`
   const { error: uploadError } = await supabase.storage
     .from('meal-photos')
     .upload(imagePath, image)

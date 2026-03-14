@@ -23,7 +23,7 @@ export default function SearchBar({ defaultValue }: { defaultValue?: string }) {
 
   return (
     <div className="flex-1 relative">
-      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400 text-lg">
         {isPending ? '⏳' : '🔍'}
       </span>
       <input
@@ -31,7 +31,7 @@ export default function SearchBar({ defaultValue }: { defaultValue?: string }) {
         defaultValue={defaultValue}
         onChange={(e) => handleSearch(e.target.value)}
         placeholder="Search for amazing meals in Pécs..."
-        className="w-full bg-gray-100 rounded-full pl-11 pr-5 py-2.5 outline-none focus:ring-2 focus:ring-red-200 transition-all text-sm"
+        className="w-full bg-white/90 border border-stone-200/80 rounded-2xl pl-12 pr-5 py-3.5 outline-none focus:ring-2 focus:ring-amber-300/60 focus:border-amber-300/50 transition-all text-sm text-stone-800 placeholder:text-stone-400 shadow-sm"
       />
     </div>
   );

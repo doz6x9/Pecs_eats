@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { Trash2, MessageCircle, BookOpen } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import CommentForm from './CommentForm';
+import LikeButton from './LikeButton';
 
 interface Post {
   id: string;
@@ -24,6 +25,8 @@ interface Post {
   recipe_requests: { count: number }[];
   user_has_requested: boolean;
   commentCount: number;
+  likeCount: number;
+  user_has_liked: boolean;
 }
 
 interface PostCardProps {
@@ -40,22 +43,19 @@ export default function PostCard({ post, currentUserId, showDeleteButton = false
   const [error, setError] = useState<string | null>(null);
   const [showCommentBox, setShowCommentBox] = useState(false);
 
-  const authorDisplay = post.profiles?.email?.split('@')[0] || 'Pécs Student';
+  const authorDisplay = post.profiles?.email?.split('@')[0] || 'Pécs';
 
   const handleRequest = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-
     if (!currentUserId) {
       window.location.href = '/login';
       return;
     }
-
     const alreadyRequested = isRequested;
     setIsRequested(!alreadyRequested);
     setRequestCount((prev) => (alreadyRequested ? prev - 1 : prev + 1));
     setError(null);
-
     const result = await requestRecipe(post.id);
     if (result.error) {
       setError(result.error);
@@ -67,15 +67,8 @@ export default function PostCard({ post, currentUserId, showDeleteButton = false
   const handleDelete = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-
-    if (!currentUserId || currentUserId !== post.user_id) {
-      return;
-    }
-
-    if (!window.confirm('Are you sure you want to delete this post?')) {
-      return;
-    }
-
+    if (!currentUserId || currentUserId !== post.user_id) return;
+    if (!window.confirm('Delete this post?')) return;
     try {
       setIsDeleting(true);
       setError(null);
@@ -85,11 +78,10 @@ export default function PostCard({ post, currentUserId, showDeleteButton = false
         setIsDeleting(false);
         return;
       }
-
       router.refresh();
     } catch (err) {
       console.error(err);
-      setError('Something went wrong while deleting the post.');
+      setError('Something went wrong.');
       setIsDeleting(false);
     }
   };
@@ -97,105 +89,119 @@ export default function PostCard({ post, currentUserId, showDeleteButton = false
   const canDelete = showDeleteButton && currentUserId === post.user_id;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.8, y: 50 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.5 }}
-      transition={{ type: "spring", stiffness: 300, damping: 20 }}
-      whileHover={{ y: -5 }}
-      className={`break-inside-avoid mb-6 group relative bg-white rounded-3xl shadow-sm border border-slate-100 hover:shadow-xl hover:shadow-emerald-500/10 transition-all duration-300 ${isDeleting ? 'opacity-50 pointer-events-none' : ''}`}
+    <motion.article
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.25 }}
+      className={`break-inside-avoid group relative bg-white rounded-2xl overflow-hidden border border-stone-100 shadow-sm hover:shadow-md hover:border-stone-200/80 transition-all duration-200 ${isDeleting ? 'opacity-50 pointer-events-none' : ''}`}
     >
-      <Link href={`/post/${post.id}`} className="cursor-pointer block p-2">
-        <div className="relative overflow-hidden rounded-2xl">
-          <motion.img
-            whileHover={{ scale: 1.02 }}
-            transition={{ duration: 0.4 }}
+      {/* Image: natural ratio, like Pinterest */}
+      <div className="relative overflow-hidden bg-stone-50 rounded-t-2xl">
+        <Link href={`/post/${post.id}`} className="block">
+          <img
             src={post.image_url}
             alt={post.description}
-            className="w-full h-auto rounded-2xl block" // Removed object-cover and aspect-ratio
+            className="w-full h-auto block group-hover:scale-[1.02] transition-transform duration-300"
           />
-          {canDelete && (
-            <div className="absolute top-2 right-2 z-10">
-              <button
-                onClick={handleDelete}
-                disabled={isDeleting}
-                className="bg-white/90 text-red-500 p-2 rounded-full shadow-lg hover:bg-red-500 hover:text-white transition-all transform hover:scale-110 active:scale-95"
-                title="Delete Post"
-              >
-                <Trash2 size={16} />
-              </button>
-            </div>
-          )}
-        </div>
-      </Link>
+        </Link>
 
-      <div className="px-4 pb-4 pt-2">
-        <h3 className="font-nunito font-bold text-lg text-slate-800 leading-tight mb-3 break-words">
-          {post.description}
-        </h3>
-
-        <div className="flex items-center justify-between gap-3 mb-4">
-          <motion.button
-            whileTap={{ scale: 0.9 }}
+        {/* Hover overlay + Recipe button on image (Pinterest-style) — only button is clickable so image still links */}
+        <div className="absolute inset-0 flex items-end justify-end p-2.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+          <button
+            type="button"
             onClick={handleRequest}
-            className={`flex-1 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-bold shadow-lg transition-all pointer-events-auto ${
               isRequested
-                ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'
-                : 'bg-slate-900 text-white hover:bg-slate-800 hover:shadow-lg shadow-md'
+                ? 'bg-emerald-500 text-white'
+                : 'bg-white text-stone-800 hover:bg-stone-100'
             }`}
           >
-            <BookOpen size={14} className={isRequested ? 'fill-emerald-700' : ''} />
-            {isRequested ? 'Requested' : 'I want the recipe!'}
-          </motion.button>
-          {requestCount > 0 && (
-            <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-full">
-              +{requestCount}
-            </span>
-          )}
-        </div>
-
-        <div className="flex items-center justify-between pt-3 border-t border-slate-50">
-          <div className="flex items-center gap-2">
-            {post.profiles?.avatar_url ? (
-              <img
-                src={post.profiles.avatar_url}
-                alt={authorDisplay}
-                className="w-6 h-6 rounded-full object-cover ring-2 ring-white shadow-sm"
-              />
-            ) : (
-              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 text-[10px] font-bold text-white shadow-sm">
-                {authorDisplay.charAt(0).toUpperCase()}
-              </div>
-            )}
-            <p className="text-xs font-bold text-slate-500 truncate max-w-[100px]">{authorDisplay}</p>
-          </div>
-
-          <button
-            onClick={() => setShowCommentBox(!showCommentBox)}
-            className="flex items-center gap-1.5 text-slate-400 hover:text-emerald-600 transition-colors group/comments"
-          >
-            <MessageCircle size={16} className="group-hover/comments:fill-emerald-100" />
-            <span className="text-xs font-bold">{post.commentCount}</span>
+            <BookOpen size={14} className={isRequested ? 'fill-white' : ''} />
+            {isRequested ? 'Requested' : 'Recipe'}
           </button>
         </div>
 
-        <AnimatePresence>
-          {showCommentBox && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="overflow-hidden"
-            >
-              <div className="pt-3">
-                <CommentForm postId={post.id} />
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {error && <p className="mt-2 text-xs text-red-500 font-medium bg-red-50 p-2 rounded-lg text-center">{error}</p>}
+        {canDelete && (
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={isDeleting}
+            className="absolute top-2 right-2 p-2 rounded-full bg-white/90 text-stone-400 hover:text-red-500 hover:bg-white shadow-md transition-all z-10 opacity-0 group-hover:opacity-100"
+            title="Delete"
+          >
+            <Trash2 size={14} />
+          </button>
+        )}
       </div>
-    </motion.div>
+
+      <div className="p-3.5">
+        <Link href={`/post/${post.id}`} className="block mb-3">
+          <p className="text-sm font-medium text-stone-800 line-clamp-2 leading-snug hover:text-stone-600 transition-colors">
+            {post.description}
+          </p>
+        </Link>
+
+        {requestCount > 0 && (
+          <p className="text-[11px] font-medium text-stone-400 mb-2">{requestCount} want this recipe</p>
+        )}
+
+        <div className="flex items-center justify-between pt-2.5 border-t border-stone-100">
+          <div className="flex items-center gap-2 min-w-0">
+            {post.profiles?.avatar_url ? (
+              <img
+                src={post.profiles.avatar_url}
+                alt=""
+                className="w-5 h-5 rounded-full object-cover flex-shrink-0"
+              />
+            ) : (
+              <div className="w-5 h-5 rounded-full bg-amber-200/80 flex items-center justify-center text-[10px] font-bold text-amber-800 flex-shrink-0">
+                {authorDisplay.charAt(0).toUpperCase()}
+              </div>
+            )}
+            <span className="text-xs text-stone-500 truncate">{authorDisplay}</span>
+          </div>
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <LikeButton
+              postId={post.id}
+              initialLiked={post.user_has_liked}
+              initialCount={post.likeCount}
+              currentUserId={currentUserId}
+              variant="compact"
+            />
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                setShowCommentBox(!showCommentBox);
+              }}
+              className="flex items-center gap-1 text-stone-400 hover:text-amber-600 transition-colors"
+            >
+              <MessageCircle size={14} />
+              <span className="text-xs font-medium">{post.commentCount}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {showCommentBox && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden border-t border-stone-100"
+          >
+            <div className="p-3 pt-2 bg-stone-50/50">
+              <CommentForm postId={post.id} />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {error && (
+        <p className="px-3.5 pb-3 text-xs text-red-500 font-medium">{error}</p>
+      )}
+    </motion.article>
   );
 }

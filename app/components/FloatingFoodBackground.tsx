@@ -14,13 +14,13 @@ export default function FloatingFoodBackground() {
   if (!mounted) return null;
 
   const icons = [
-    { Icon: Pizza, color: 'text-orange-200' },
-    { Icon: Coffee, color: 'text-amber-200' },
-    { Icon: Utensils, color: 'text-slate-200' },
-    { Icon: Croissant, color: 'text-yellow-200' },
-    { Icon: Carrot, color: 'text-orange-300' },
-    { Icon: Sandwich, color: 'text-green-200' },
-    { Icon: IceCream, color: 'text-pink-200' },
+    { Icon: Pizza, color: 'text-amber-300/30' },
+    { Icon: Coffee, color: 'text-stone-300/40' },
+    { Icon: Utensils, color: 'text-amber-200/35' },
+    { Icon: Croissant, color: 'text-yellow-200/40' },
+    { Icon: Carrot, color: 'text-orange-200/35' },
+    { Icon: Sandwich, color: 'text-emerald-200/30' },
+    { Icon: IceCream, color: 'text-rose-200/35' },
   ];
 
   // Generate random positions
@@ -42,7 +42,7 @@ export default function FloatingFoodBackground() {
       {items.map((item) => (
         <motion.div
           key={item.id}
-          className={`absolute ${item.color} opacity-20`}
+          className={`absolute ${item.color}`}
           style={{ top: item.top, left: item.left }}
           animate={{
             y: [0, -50, 0],

@@ -20,20 +20,23 @@ export default function CategoryFilter() {
   }
 
   return (
-    <div className="flex gap-2 overflow-x-auto pb-4 no-scrollbar max-w-[1800px] mx-auto px-4 mt-4">
-      {CATEGORIES.map((cat) => (
-        <button
-          key={cat}
-          onClick={() => handleFilter(cat)}
-          className={`px-6 py-2 rounded-full text-sm font-bold transition-all whitespace-nowrap ${
-            currentQuery === cat || (cat === 'All' && !searchParams.get('query'))
-              ? 'bg-black text-white'
-              : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-          }`}
-        >
-          {cat}
-        </button>
-      ))}
+    <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+      {CATEGORIES.map((cat) => {
+        const isActive = currentQuery === cat || (cat === 'All' && !searchParams.get('query'));
+        return (
+          <button
+            key={cat}
+            onClick={() => handleFilter(cat)}
+            className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${
+              isActive
+                ? 'bg-amber-600 text-white shadow-md shadow-amber-600/20'
+                : 'bg-white/80 text-stone-600 hover:bg-white border border-stone-200/80 hover:border-amber-200'
+            }`}
+          >
+            {cat}
+          </button>
+        );
+      })}
     </div>
   );
 }

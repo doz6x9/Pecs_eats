@@ -27,7 +27,8 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
       *,
       profiles!posts_user_id_fkey (id, email, avatar_url),
       recipe_requests (user_id),
-      comments (count)
+      comments (count),
+      likes (user_id)
     `)
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
@@ -52,6 +53,8 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     user_has_requested: currentUser ? post.recipe_requests.some((req: { user_id: string }) => req.user_id === currentUser.id) : false,
     recipe_requests: [{ count: post.recipe_requests.length }],
     commentCount: post.comments[0]?.count ?? 0,
+    likeCount: post.likes?.length ?? 0,
+    user_has_liked: currentUser ? (post.likes ?? []).some((l: { user_id: string }) => l.user_id === currentUser.id) : false,
   })) || [];
 
   const isOwnProfile = currentUser?.id === userId;
@@ -118,11 +121,15 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                   <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Posts</span>
                 </div>
                 <div className="text-center">
-                  <span className="block text-2xl font-black text-slate-900">0</span>
+                  <span className="block text-2xl font-black text-slate-900">
+                    {posts.filter((p: { has_recipe: boolean }) => p.has_recipe).length}
+                  </span>
                   <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Recipes</span>
                 </div>
                 <div className="text-center">
-                  <span className="block text-2xl font-black text-slate-900">0</span>
+                  <span className="block text-2xl font-black text-slate-900">
+                    {posts.reduce((acc: number, p: { likeCount?: number }) => acc + (p.likeCount ?? 0), 0)}
+                  </span>
                   <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Likes</span>
                 </div>
               </div>

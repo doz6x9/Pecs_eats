@@ -19,7 +19,8 @@ export default function AddRecipeForm({ postId, initialRecipe }: { postId: strin
       if (result.error) {
         setError(result.error);
       } else {
-        router.push(`/post/${postId}`); // Redirect back to the post
+        // Full page load so the description page always shows the newly saved recipe (avoids client cache)
+        window.location.href = `/post/${postId}`;
       }
     });
   };

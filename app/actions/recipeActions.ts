@@ -2,8 +2,13 @@
 
 import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { isValidUuid } from '@/lib/validation';
 
 export async function requestRecipe(postId: string) {
+  if (!postId || !isValidUuid(postId)) {
+    return { error: 'Invalid post.' };
+  }
+
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();

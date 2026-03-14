@@ -3,6 +3,10 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import CommentForm from '@/app/components/CommentForm';
 import RequestRecipeButton from '@/app/components/RequestRecipeButton';
+import LikeButton from '@/app/components/LikeButton';
+
+// Always fetch fresh data so recipe updates show immediately for owner and requesters
+export const dynamic = 'force-dynamic';
 
 type PostPageProps = {
   params: Promise<{
@@ -18,14 +22,15 @@ export default async function PostPage({ params }: PostPageProps) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Fetch the post with profile info AND recipe requests
+  // Fetch the post with profile info, recipe requests, and likes
   const { data: post, error: postError } = await supabase
     .from('posts')
     .select(
       `
       *,
       profiles!posts_user_id_fkey (id, email, avatar_url),
-      recipe_requests (user_id)
+      recipe_requests (user_id),
+      likes (user_id)
     `,
     )
     .eq('id', postId)
@@ -36,10 +41,14 @@ export default async function PostPage({ params }: PostPageProps) {
     notFound();
   }
 
-  // Calculate request stats
+  // Calculate request and like stats
   const requestCount = post.recipe_requests.length;
   const userHasRequested = user
     ? post.recipe_requests.some((req: { user_id: string }) => req.user_id === user.id)
+    : false;
+  const likeCount = post.likes?.length ?? 0;
+  const userHasLiked = user
+    ? (post.likes ?? []).some((l: { user_id: string }) => l.user_id === user.id)
     : false;
 
   // Fetch comments
@@ -70,6 +79,17 @@ export default async function PostPage({ params }: PostPageProps) {
             src={post.image_url}
             alt={post.description}
             className="w-full h-auto object-cover max-h-[600px]"
+          />
+        </div>
+
+        {/* Bon Appétit like button */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-wrap items-center justify-between gap-4">
+          <LikeButton
+            postId={post.id}
+            initialLiked={userHasLiked}
+            initialCount={likeCount}
+            currentUserId={user?.id ?? null}
+            variant="full"
           />
         </div>
 
