@@ -9,13 +9,17 @@ export default function AdminDashboard({ posts, comments }: { posts: any[], comm
 
   const handleDeletePost = (postId: string) => {
     if (window.confirm('Are you sure you want to delete this post?')) {
-      startTransition(() => adminDeletePost(postId));
+      startTransition(async () => {
+        await adminDeletePost(postId);
+      });
     }
   };
 
   const handleDeleteComment = (commentId: string) => {
     if (window.confirm('Are you sure you want to delete this comment?')) {
-      startTransition(() => adminDeleteComment(commentId));
+      startTransition(async () => {
+        await adminDeleteComment(commentId);
+      });
     }
   };
 
