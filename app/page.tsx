@@ -5,6 +5,14 @@ import CategoryFilter from './components/CategoryFilter';
 import Link from 'next/link';
 import { UtensilsCrossed, Sparkles } from 'lucide-react';
 
+interface RecipeRequest {
+  user_id: string;
+}
+
+interface Like {
+  user_id: string;
+}
+
 export default async function Home({
   searchParams,
 }: {
@@ -37,11 +45,11 @@ export default async function Home({
 
   const posts = postsData?.map(post => ({
     ...post,
-    user_has_requested: user ? post.recipe_requests.some(req => req.user_id === user.id) : false,
+    user_has_requested: user ? post.recipe_requests.some((req: RecipeRequest) => req.user_id === user.id) : false,
     recipe_requests: [{ count: post.recipe_requests.length }],
     commentCount: post.comments[0]?.count ?? 0,
     likeCount: post.likes?.length ?? 0,
-    user_has_liked: user ? (post.likes ?? []).some((l: { user_id: string }) => l.user_id === user.id) : false,
+    user_has_liked: user ? (post.likes ?? []).some((l: Like) => l.user_id === user.id) : false,
   })) || [];
 
   return (
