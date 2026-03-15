@@ -17,8 +17,8 @@ function getSafeAuthErrorMessage(raw: string): string {
 export async function login(formData: FormData) {
   const supabase = await createClient()
 
-  const email = formData.get('email') as string
-  const password = formData.get('password') as string
+  const email = (formData.get('email') as string) || ''
+  const password = (formData.get('password') as string) || ''
 
   const { error } = await supabase.auth.signInWithPassword({
     email,
@@ -38,8 +38,8 @@ export async function signup(formData: FormData) {
   const supabase = await createClient()
   const origin = (await headers()).get('origin')
 
-  const email = formData.get('email') as string
-  const password = formData.get('password') as string
+  const email = (formData.get('email') as string) || ''
+  const password = (formData.get('password') as string) || ''
 
   const { data, error } = await supabase.auth.signUp({
     email,

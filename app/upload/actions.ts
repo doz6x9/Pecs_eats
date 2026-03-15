@@ -43,7 +43,7 @@ export async function uploadMeal(formData: FormData) {
   let description = (formData.get('description') as string) ?? ''
   const category = (formData.get('category') as string) ?? ''
   const has_recipe = formData.get('has_recipe') === 'on'
-  let recipe_text = (formData.get('recipe_text') as string) ?? null
+  let recipe_text: string | null = (formData.get('recipe_text') as string) ?? null
   const spiceLevelStr = formData.get('spice_level') as string;
   const spice_level = parseInt(spiceLevelStr, 10) || 0;
   const dietary_badges = formData.getAll('dietary_badges') as string[];
